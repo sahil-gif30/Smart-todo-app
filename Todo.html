@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart To-Do App</title>
+
+<style>
+:root {
+  --primary: #6366f1;
+  --success: #22c55e;
+  --warning: #facc15;
+  --danger: #ef4444;
+  --bg-light: #f3f4f6;
+  --bg-dark: #0f172a;
+  --card-light: rgba(255,255,255,0.9);
+  --card-dark: rgba(30,41,59,0.9);
+  --text-light: #0f172a;
+  --text-dark: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.3s;
+}
+
+body.dark {
+  background: linear-gradient(135deg, #020617, #020617);
+}
+
+.todo-app {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  background: var(--card-light);
+  color: var(--text-light);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+  position: relative;
+  animation: slideUp 0.6s ease;
+}
+
+body.dark .todo-app {
+  background: var(--card-dark);
+  color: var(--text-dark);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.dark-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+input, select {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  flex: 1;
+}
+
+button.add {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+button.add:hover {
+  transform: scale(1.05);
+}
+
+.progress {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--success);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.7);
+  animation: fadeIn 0.3s ease;
+}
+
+body.dark li {
+  background: rgba(15,23,42,0.8);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+li.completed span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+li.low { border-left: 6px solid var(--success); }
+li.medium { border-left: 6px solid var(--warning); }
+li.high { border-left: 6px solid var(--danger); }
+
+.actions span {
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.actions span:hover {
+  transform: scale(1.3);
+}
+
+@media (max-width: 480px) {
+  .todo-app {
+    margin: 16px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="todo-app">
+  <button class="dark-toggle" onclick="toggleDark()">🌙</button>
+  <h1>✨ Smart To-Do</h1>
+
+  <div class="input-group">
+    <input id="taskInput" placeholder="Add a task..." />
+    <select id="priority">
+      <option value="low">🟢 Low</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="high">🔴 High</option>
+    </select>
+  </div>
+
+  <button class="add" onclick="addTask()">➕ Add Task</button>
+
+  <div class="progress">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <ul id="taskList"></ul>
+</div>
+
+<script>
+const taskInput = document.getElementById("taskInput");
+const priorityInput = document.getElementById("priority");
+const taskList = document.getElementById("taskList");
+const progressBar = document.getElementById("progressBar");
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function save() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function render() {
+  taskList.innerHTML = "";
+  tasks.forEach((t, i) => {
+    const li = document.createElement("li");
+    li.className = `${t.priority} ${t.completed ? "completed" : ""}`;
+    li.innerHTML = `
+      <span>${t.text}</span>
+      <div class="actions">
+        <span onclick="toggle(${i})">✅</span>
+        <span onclick="removeTask(${i})">🗑️</span>
+      </div>
+    `;
+    taskList.appendChild(li);
+  });
+  updateProgress();
+}
+
+function addTask() {
+  const text = taskInput.value.trim();
+  if (!text) return;
+  tasks.push({ text, completed: false, priority: priorityInput.value });
+  taskInput.value = "";
+  save();
+  render();
+}
+
+function toggle(i) {
+  tasks[i].completed = !tasks[i].completed;
+  save();
+  render();
+}
+
+function removeTask(i) {
+  tasks.splice(i, 1);
+  save();
+  render();
+}
+
+function updateProgress() {
+  const done = tasks.filter(t => t.completed).length;
+  const percent = tasks.length ? (done / tasks.length) * 100 : 0;
+  progressBar.style.width = percent + "%";
+}
+
+function toggleDark() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("dark", document.body.classList.contains("dark"));
+}
+
+if(localStorage.getItem("dark") === "true") {
+  document.body.classList.add("dark");
+}
+
+taskInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") addTask();
+});
+
+render();
+</script>
+
+</body>
+</html>
